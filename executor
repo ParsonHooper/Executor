@@ -1,0 +1,62 @@
+#!/usr/local/bin/python3
+
+################################################################################
+# Author: Devin P Shanahan                                                     #
+# Version: 0.0.1                                                               #
+#                                                                              #
+# usage: executor [-h] [-o] [-r] command [inputDirectory]                      #
+#                                                                              #
+# This program takes a command as input and runs that command on every file in #
+# the current working directory.                                               #
+#                                                                              #
+# positional arguments:                                                        #
+#   command          Command to execute                                        #
+#   inputDirectory   Working directory; defaults to current directory          #
+#                                                                              #
+# optional arguments:                                                          #
+#   -h, --help       show this help message and exit                           #
+#   -o, --output     Pipe the output from each input file to an output file;   #
+#                    output files will be named                                #
+#                    <inputDirectory>.executor.<command>                       #
+#   -r, --recursive  Recursive execution                                       #
+################################################################################
+
+# Imports
+import os
+import argparse
+import subprocess
+
+# Setup argument parser
+parser = argparse.ArgumentParser(description='This program takes a command as input and runs that command on every file in the current working directory.')
+parser.add_argument('command', help='Command to execute')
+parser.add_argument('inputDirectory', nargs='?', default=os.getcwd(), help='Working directory; defaults to current directory')
+parser.add_argument('-o', '--output', action='store_true', help='Pipe the output from each input file to an output file; output files will be named <inputDirectory>.executor.<command>')
+parser.add_argument('-r', '--recursive', action='store_true', help='Recursive execution')
+args = parser.parse_args()
+
+# Read arguments and declare variables
+command = args.command
+inputDirectory = args.inputDirectory
+output = args.output
+recursive = args.recursive
+bashProcesses = []
+
+if recursive:
+    for root, dir, file in os.walk(inputDirectory):
+        for filename in file:
+            filename = os.path.join(root, filename)
+            bashCommand = command + " " + filename
+            if output: bashCommand += " > " + filename + ".executor." + command
+            bashProcess = subprocess.Popen(bashCommand, shell=True)
+            bashProcesses.append(bashProcess)
+else:
+    for file in os.listdir(inputDirectory):
+        filename = os.path.join(inputDirectory, file)
+        if os.path.isfile(filename):
+            bashCommand = command + " " + filename
+            if output: bashCommand += " > " + filename + ".executor." + command
+            bashProcess = subprocess.Popen(bashCommand, shell=True)
+            bashProcesses.append(bashProcess)
+
+while bashProcesses:
+    bashProcesses.pop().wait()
